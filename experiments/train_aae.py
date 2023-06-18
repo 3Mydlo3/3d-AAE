@@ -1,10 +1,13 @@
 import argparse
+from asyncio.windows_events import NULL
 import json
 import logging
 import random
 from datetime import datetime
 from importlib import import_module
 from itertools import chain
+import sys
+import os
 from os.path import join, exists
 
 import matplotlib.pyplot as plt
@@ -16,6 +19,7 @@ import torch.optim as optim
 import torch.utils.data
 from torch.utils.data import DataLoader
 
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from utils.pcutil import plot_3d_point_cloud
 from utils.util import find_latest_epoch, prepare_results_dir, cuda_setup, setup_logging
 
@@ -49,6 +53,10 @@ def main(config):
     log.debug(f'Device variable: {device}')
     if device.type == 'cuda':
         log.debug(f'Current CUDA device: {torch.cuda.current_device()}')
+    
+    max_split_size_mb = config['max_split_size_mb']
+    if max_split_size_mb != None:
+        os.environ['PYTORCH_CUDA_ALLOC_CONF'] = "max_split_size_mb:" + str(max_split_size_mb)
 
     weights_path = join(results_dir, 'weights')
 
@@ -210,7 +218,7 @@ def main(config):
                       f'(REC: {loss_e.item(): .4f}) '
                       f'Time: {datetime.now() - start_epoch_time}')
 
-        log.debug(
+        log.info(
             f'[{epoch}/{config["max_epochs"]}] '
             f'Loss_D: {total_loss_d / i:.4f} '
             f'Loss_EG: {total_loss_eg / i:.4f} '
@@ -224,12 +232,13 @@ def main(config):
         E.eval()
         D.eval()
         with torch.no_grad():
-            fake = G(fixed_noise).data.cpu().numpy()
+            fake = G(fixed_noise).cpu().data.numpy()
             codes, _, _ = E(X)
-            X_rec = G(codes).data.cpu().numpy()
+            X_rec = G(codes).cpu().data.numpy()
 
         for k in range(5):
-            fig = plot_3d_point_cloud(X[k][0], X[k][1], X[k][2],
+            X_copy = X.cpu().data.numpy()
+            fig = plot_3d_point_cloud(X_copy[k][0], X_copy[k][1], X_copy[k][2],
                                       in_u_sphere=True, show=False,
                                       title=str(epoch))
             fig.savefig(
