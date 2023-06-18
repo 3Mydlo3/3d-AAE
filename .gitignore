@@ -525,3 +525,5 @@ TSWLatexianTemp*
 
 # linter configuration
 setup.cfg
+
+_data/

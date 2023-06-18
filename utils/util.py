@@ -15,7 +15,7 @@ def setup_logging(log_dir):
     filemode = 'a' if exists(logpath) else 'w'
 
     # set up logging to file - see previous section for more details
-    logging.basicConfig(level=logging.DEBUG,
+    logging.basicConfig(level=logging.INFO,
                         format='%(asctime)s %(message)s',
                         datefmt='%m-%d %H:%M:%S',
                         filename=logpath,
